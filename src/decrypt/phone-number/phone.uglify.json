@@ -1,0 +1,6 @@
+{
+    "mangle": {
+        "toplevel": true,
+        "reserved": ["PhoneComponent", "PhoneCmd", "PhoneNumber"]
+    }
+}
