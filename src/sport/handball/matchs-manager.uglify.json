@@ -1,0 +1,6 @@
+{
+    "mangle": {
+        "toplevel": true,
+        "reserved": ["MatchManager", "MatchDb", "Gym", "TeamMatch", "Team", "TeamMatchList","DateUtils", "MatchExternalConstants"]
+    }
+}
