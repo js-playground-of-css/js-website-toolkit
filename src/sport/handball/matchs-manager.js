@@ -2,7 +2,7 @@
   * JavaScript Component to manage set of matchs !
   * Dependency : jQuery.
   * Author: chris-scientist
-  * Version : 1.0.0
+  * Version : 1.1.0
   * Description : Permet d'afficher les différents matchs pour l'ensemble des équipes d'un club de handball.
   * Contraite : les équipes doivent toutes être alignés sur la même saison. Par exemple, impossible d'afficher pour une équipe les matchs de la saison 2023/2024 et pour une autre équipe celle de la saison 2024/2025. Ceci car les gymnases sont partagés pour la saison.
  */
@@ -10,6 +10,7 @@ class MatchManager {
     constructor(activeCalendarStr, aMatchDb) {
         this._activeCalendarStr = activeCalendarStr;
         this._matchDb = aMatchDb;
+        this._generatedAtInformationUI = new GeneratedAtInformationUI(this._matchDb.getGeneratedAt());
     }
 
     sortData() {
@@ -74,6 +75,7 @@ class MatchManager {
                 }
                 (new AllPastMatchUI(teamMatchList.pastMatchSet, this._matchDb)).build();
                 this._hideWaitingCalendarMessage();
+                this._generatedAtInformationUI.build();
             }
         }
     }
@@ -84,9 +86,9 @@ class MatchManager {
 
     _activeKeys() {
         return [
-            MatchExternalConstants.KEY_SENIOR_TEAM//,
+            MatchExternalConstants.KEY_SENIOR_TEAM,
 //            MatchExternalConstants.KEY_U9_TEAM,
-//            MatchExternalConstants.KEY_U11M_TEAM
+            MatchExternalConstants.KEY_U11M_TEAM
         ];
     }
 
@@ -270,6 +272,50 @@ class MatchUI {
 
 }
 
+class GeneratedAtInformationUI {
+    constructor(aGeneratedDate) {
+        this._generatedAt = aGeneratedDate;
+    }
+
+    build() {
+        if(this._generatedAt !== null) {
+            const textGeneratedAt = $(`#generated-at`);
+            textGeneratedAt.removeClass('placeholder w-50');
+            textGeneratedAt.text(this._getMessage());
+            textGeneratedAt.show();
+        }
+    }
+
+    _getMessage() {
+        return `Sur la base d'informations collectées le ${this._generatedAt}${this._timeDeltaToNowMessage()}.`;
+    }
+
+    _timeDeltaToNowMessage() {
+        let detlaMessage = "";
+        const timeDelta = this._computeTimeDeltaToNow();
+        const timeDeltaUnit = timeDelta.unit;
+        if(timeDeltaUnit !== DateConstants.UNIT_DURATION_ATM) {
+            let output = "ND";
+            const timeDeltaLabel = timeDelta.label;
+            if(timeDeltaUnit === DateConstants.UNIT_DURATION_MINUTE) {
+                output = `${timeDeltaLabel} minute(s)`;
+            } else if(timeDeltaUnit === DateConstants.UNIT_DURATION_HOUR) {
+                output = `${timeDeltaLabel} heure(s)`;
+            } else {
+                output = `${timeDeltaLabel} jour(s)`;
+            }
+            detlaMessage = ` soit il y a ${output}`;
+        }
+        return detlaMessage;
+    }
+
+    _computeTimeDeltaToNow() {
+        const generatedAtDate = DateUtils.convertStringToDate(this._generatedAt);
+        return DateUtils.computeDurationFromToday(generatedAtDate);
+    }
+
+}
+
 class MatchSettings {
     constructor(anIndexKeyMatchList, aHtmlIdMenuFlag) {
         this._indexKeyMatchList = anIndexKeyMatchList;
@@ -334,6 +380,7 @@ class MatchDb {
     constructor() {
         this._matchSet = [];
         this._gymSet = [];
+        this._generatedAt = null;
     }
 
     addTeamMatchList(aKey, aTeamMatchList) {
@@ -358,6 +405,14 @@ class MatchDb {
             return this._gymSet[anIndexKey];
         }
         throw new Error("Pas de gymnase pour cet index !!");
+    }
+
+    setGeneratedAt(anGeneratedDate) {
+        this._generatedAt = anGeneratedDate;
+    }
+
+    getGeneratedAt() {
+        return this._generatedAt;
     }
 }
 
@@ -568,7 +623,6 @@ class TeamMatchFullBuilder {
 
 class Today {
     static date() {
-        //return new Date(2024,7/* 7 = août */,25);
         return new Date();
     }
 }
@@ -769,9 +823,17 @@ class DateUtils {
     }
 
     static computeDurationWithToday(anInputDate) {
-        const endDate = DateUtils.addHourAndMinuteOfOtherDate(anInputDate, 1, 30);
-        const compareBeginDate = DateUtils.compareDate(anInputDate, Today.date());
-    //    const compareEndDate = DateUtils.compareDate(Today.date(), endDate);
+        return this._computeDurationWithToday(anInputDate, true);
+    }
+
+    static computeDurationFromToday(anInputDate) {
+        return this._computeDurationWithToday(anInputDate, false);
+    }
+
+    static _computeDurationWithToday(anInputDate, isTodayEndDate) {
+        const compareBeginDate = isTodayEndDate ? 
+            DateUtils.compareDate(anInputDate, Today.date()) : 
+            DateUtils.compareDate(Today.date(), anInputDate);
         let output = 'ATM'; // La rencontre est en cours...
         let unit = DateConstants.UNIT_DURATION_ATM;
         if(
@@ -779,14 +841,13 @@ class DateUtils {
                 (
                     compareBeginDate === DateConstants.FLAG_LEFT_DATE_IS_EARLIER_THAN_RIGHT_DATE || 
                     compareBeginDate === DateConstants.FLAG_LEFT_DATE_IS_EQUAL_TO_RIGHT_DATE
-                )/* && (
-                    compareEndDate === DateConstants.FLAG_LEFT_DATE_IS_LATER_THAN_RIGHT_DATE || 
-                    compareEndDate === DateConstants.FLAG_LEFT_DATE_IS_EQUAL_TO_RIGHT_DATE
-                )*/
+                )
             )
         ) {
             // La rencontre est à venir...
-            const durationInMinutes = Math.ceil( (anInputDate.getTime() - Today.date().getTime()) / 60000 );
+            const durationInMinutes = isTodayEndDate ? 
+                Math.ceil( (anInputDate.getTime() - Today.date().getTime()) / 60000 ) :
+                Math.ceil( (Today.date().getTime() - anInputDate.getTime()) / 60000 );
             const oneDay = 1440;
             const oneHour = 60;
             if(durationInMinutes >= oneDay) {
@@ -854,7 +915,7 @@ class DateConstants {
 //
 // DON'T MINIMFY THE FOLLOWING METHOD :
 // - For MatchManager : sortData, buildUI
-// - For MatchDb : addTeamMatchList, addGym
+// - For MatchDb : addTeamMatchList, addGym, setGeneratedAt
 // - For TeamMatchList : addTeamMatch
 // - For DateUtils : convertStringToDate
 // - For MatchExternalConstants : *
