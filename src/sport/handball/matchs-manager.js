@@ -6,6 +6,14 @@
   * Description : Permet d'afficher les différents matchs pour l'ensemble des équipes d'un club de handball.
   * Contraite : les équipes doivent toutes être alignés sur la même saison. Par exemple, impossible d'afficher pour une équipe les matchs de la saison 2023/2024 et pour une autre équipe celle de la saison 2024/2025. Ceci car les gymnases sont partagés pour la saison.
  */
+
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// MAIN COMPONENT
+//
+// ==========================================================================================================================
+
 class MatchManager {
     constructor(activeCalendarStr, aMatchDb) {
         this._activeCalendarStr = activeCalendarStr;
@@ -129,6 +137,12 @@ class MatchManager {
         $('#waiting-message').removeAttr('style');
     }
 }
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// UI COMPONENT
+//
+// ==========================================================================================================================
 
 class AllPastMatchUI {
     constructor(aPastMatchSet, aMatchDb) {
@@ -316,6 +330,119 @@ class GeneratedAtInformationUI {
 
 }
 
+class PopUpNextMatchUI {
+    constructor(anActiveCalendarStr, aMatchDb) {
+        this._matchDb = aMatchDb;
+        this._indexOfNextMatch = 0;
+        this._activeCalendarStr = anActiveCalendarStr;
+        /*const nextButton = $('#popup-next-match-next-button');
+        const previousButton = $('#popup-next-match-previous-button');
+        nextButton.on("click", function () {
+            this.nextMatch();
+        });
+        previousButton.on("click", function () {
+            this.previousNextMatch();
+        });*/
+    }
+
+    open() {
+        this._initialize();
+        //
+        const popupNextMatch = new bootstrap.Modal('#popup-next-match')
+        popupNextMatch.show();
+    }
+
+    _initialize() {
+        const teamMatch = this._matchDb
+            .getTeamMatchList(this._activeCalendarStr)
+            .futureMatchSet[ this._indexOfNextMatch ];
+        const teamMatchFull = TeamMatchFullBuilder.create(teamMatch, this._matchDb);
+        const popupContent = new PopUpNextMatchContent(teamMatchFull);
+        $('#popup-next-match-title').text(popupContent.title);
+        $('#popup-next-macth-team-name').text(popupContent.teamList);
+        $('#popup-next-match-date-of-match').text(popupContent.startDate);
+        $('#popup-next-match-gym-of-match').text(popupContent.gymFullAddress);
+        $('#popup-next-match-close-button-label').text(popupContent.closeButtonLabel);
+        $('#popup-next-match-next-button').text(popupContent.nextButtonLabel);
+        $('#popup-next-match-previous-button').text(popupContent.previousButtonLabel);
+    }
+
+    /*nextMatch() {
+        if( this.hasNextMatch() ) {
+            this._indexOfNextMatch++;
+            this._initialize();
+        }
+    }
+
+    previousNextMatch() {
+        if( this.hasPreviousNextMatch() ) {
+            this._indexOfNextMatch--;
+            this._initialize();
+        }
+    }
+
+    hasNextMatch() {
+        return ( this._indexOfNextMatch < this._matchDb.futureMatchSet.length );
+    }
+
+    hasPreviousNextMatch() {
+        return ( this._indexOfNextMatch > 0 );
+    }*/
+}
+
+class PopUpNextMatchContent {
+    constructor(aTeamMatchFull) {
+        this._teamMatchFull = aTeamMatchFull;
+    }
+    
+    get title() {
+        return 'Match à venir';
+    }
+
+    get closeButtonLabel() {
+        return 'Fermer';
+    }
+
+    get nextButtonLabel() {
+        return 'Suivant';
+    }
+
+    get previousButtonLabel() {
+        return 'Précédent';
+    }
+
+    get teamList() {
+        //const emojiHand = '&#129308;';
+        let teamNameList = '';
+        for(const team of this._teamMatchFull.teamList) {
+            if(teamNameList === '') {
+                teamNameList = `${team.name}`;
+            } else {
+                teamNameList = `${teamNameList}, ${team.name}`;
+            }
+        }
+        //return `${emojiHand} ${teamNameList}`;
+        return `${teamNameList}`;
+    }
+
+    get startDate() {
+        //const emojiCalendar = '&#128197;';
+        //return `${emojiCalendar} ${new FullDateTranslator(this._teamMatchFull.startDate).translate()}`;
+        return `${new FullDateTranslator(this._teamMatchFull.startDate).translate()}`;
+    }
+
+    get gymFullAddress() {
+        //return `${this._teamMatchFull.gymName}<br />${this._teamMatchFull.gymAddress}<br />${this._teamMatchFull.gymCity}`;
+        return `${this._teamMatchFull.gymName}, ${this._teamMatchFull.gymAddress}, ${this._teamMatchFull.gymCity}`;
+    }
+}
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// SETTINGS COMPONENT
+//
+// ==========================================================================================================================
+
 class MatchSettings {
     constructor(anIndexKeyMatchList, aHtmlIdMenuFlag) {
         this._indexKeyMatchList = anIndexKeyMatchList;
@@ -375,7 +502,14 @@ class MatchSettingsSwitch {
         return settings;
     }
 }
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// DATA COMPONENT
+//
+// ==========================================================================================================================
 
+// Ensemble des matchs et salles de sport pour toutes les équipes.
 class MatchDb {
     constructor() {
         this._matchSet = [];
@@ -416,6 +550,7 @@ class MatchDb {
     }
 }
 
+// Ensemble des matchs passés et à venir pour une équipe.
 class TeamMatchList {
     constructor() {
         this._futureMatchSet = [];
@@ -532,11 +667,16 @@ class TeamMatchList {
         return this._endYear;
     }
 
+    get futureMatchSet() {
+        return this._futureMatchSet;
+    }
+
     get pastMatchSet() {
         return this._pastMatchSet;
     }
 }
 
+// Equipe.
 class Team {
     constructor(aTeamName) {
         this._name = aTeamName;
@@ -547,6 +687,7 @@ class Team {
     }
 }
 
+// Match.
 class TeamMatch {
     constructor(aStartDate, aGymId, aTeamList) {
         this._startDate = aStartDate;
@@ -567,6 +708,7 @@ class TeamMatch {
     }
 }
 
+// Salle de sport.
 class Gym {
     constructor(aGymName, anAddress, aCity) {
         this._name = aGymName;
@@ -587,6 +729,7 @@ class Gym {
     }
 }
 
+// Match avec informations relatives à la salle de sport.
 class TeamMatchFull {
     constructor(aTeamMatch, aGymObj) {
         this._startDate = aTeamMatch.startDate;
@@ -615,11 +758,18 @@ class TeamMatchFull {
     }
 }
 
+// Builder pour un match avec les informations relatives à la salle de sport.
 class TeamMatchFullBuilder {
     static create(aTeamMatch, aMatchDb) {
         return new TeamMatchFull(aTeamMatch, aMatchDb.getGym(aTeamMatch.gymId));
     }
 }
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// UTILS COMPONENT
+//
+// ==========================================================================================================================
 
 class Today {
     static date() {
@@ -877,6 +1027,12 @@ class DateUtils {
         );
     }
 }
+// ==========================================================================================================================
+// ==========================================================================================================================
+//
+// CONSTANTS COMPONENT
+//
+// ==========================================================================================================================
 
 class MatchExternalConstants {
     static KEY_SENIOR_TEAM = 'SEN';
@@ -911,11 +1067,12 @@ class DateConstants {
 // |======================|
 //
 // DON'T MINIFY THE FOLLOWING CLASS :
-// MatchManager, MatchDb, Gym, TeamMatch, Team, TeamMatchList, DateUtils, MatchExternalConstants.
+// MatchManager, MatchDb, Gym, PopUpNextMatchUI, TeamMatch, Team, TeamMatchList, DateUtils, MatchExternalConstants.
 //
 // DON'T MINIMFY THE FOLLOWING METHOD :
 // - For MatchManager : sortData, buildUI
 // - For MatchDb : addTeamMatchList, addGym, setGeneratedAt
+// - For PopUpNextMatchUI : open
 // - For TeamMatchList : addTeamMatch
 // - For DateUtils : convertStringToDate
 // - For MatchExternalConstants : *
