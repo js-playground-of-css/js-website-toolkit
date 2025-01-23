@@ -2,7 +2,7 @@
   * JavaScript Component to manage set of matchs !
   * Dependency : jQuery.
   * Author: chris-scientist
-  * Version : 1.1.0
+  * Version : 1.3.0
   * Description : Permet d'afficher les différents matchs pour l'ensemble des équipes d'un club de handball.
   * Contraite : les équipes doivent toutes être alignés sur la même saison. Par exemple, impossible d'afficher pour une équipe les matchs de la saison 2023/2024 et pour une autre équipe celle de la saison 2024/2025. Ceci car les gymnases sont partagés pour la saison.
  */
@@ -335,14 +335,6 @@ class PopUpNextMatchUI {
         this._matchDb = aMatchDb;
         this._indexOfNextMatch = 0;
         this._activeCalendarStr = anActiveCalendarStr;
-        /*const nextButton = $('#popup-next-match-next-button');
-        const previousButton = $('#popup-next-match-previous-button');
-        nextButton.on("click", function () {
-            this.nextMatch();
-        });
-        previousButton.on("click", function () {
-            this.previousNextMatch();
-        });*/
     }
 
     open() {
@@ -367,7 +359,7 @@ class PopUpNextMatchUI {
         $('#popup-next-match-previous-button').text(popupContent.previousButtonLabel);
     }
 
-    /*nextMatch() {
+    nextMatch() {
         if( this.hasNextMatch() ) {
             this._indexOfNextMatch++;
             this._initialize();
@@ -382,12 +374,19 @@ class PopUpNextMatchUI {
     }
 
     hasNextMatch() {
-        return ( this._indexOfNextMatch < this._matchDb.futureMatchSet.length );
+        return (
+            this._indexOfNextMatch < 
+            (
+                this._matchDb
+                    .getTeamMatchList(this._activeCalendarStr)
+                    .futureMatchSet.length - 1
+            )
+        );
     }
 
     hasPreviousNextMatch() {
         return ( this._indexOfNextMatch > 0 );
-    }*/
+    }
 }
 
 class PopUpNextMatchContent {
@@ -1072,7 +1071,7 @@ class DateConstants {
 // DON'T MINIMFY THE FOLLOWING METHOD :
 // - For MatchManager : sortData, buildUI
 // - For MatchDb : addTeamMatchList, addGym, setGeneratedAt
-// - For PopUpNextMatchUI : open
+// - For PopUpNextMatchUI : open, nextMatch, previousNextMatch, hasNextMatch, hasPreviousNextMatch
 // - For TeamMatchList : addTeamMatch
 // - For DateUtils : convertStringToDate
 // - For MatchExternalConstants : *
