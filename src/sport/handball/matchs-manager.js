@@ -2,7 +2,7 @@
   * JavaScript Component to manage set of matchs !
   * Dependency : jQuery.
   * Author: chris-scientist
-  * Version : 1.3.0
+  * Version : 1.4.0
   * Description : Permet d'afficher les différents matchs pour l'ensemble des équipes d'un club de handball.
   * Contraite : les équipes doivent toutes être alignés sur la même saison. Par exemple, impossible d'afficher pour une équipe les matchs de la saison 2023/2024 et pour une autre équipe celle de la saison 2024/2025. Ceci car les gymnases sont partagés pour la saison.
  */
@@ -338,6 +338,7 @@ class PopUpNextMatchUI {
     }
 
     open() {
+        this._showFirstNextMatch();
         this._initialize();
         //
         const popupNextMatch = new bootstrap.Modal('#popup-next-match')
@@ -345,11 +346,14 @@ class PopUpNextMatchUI {
     }
 
     _initialize() {
-        const teamMatch = this._matchDb
+        const futurMatchSet = this._matchDb
             .getTeamMatchList(this._activeCalendarStr)
-            .futureMatchSet[ this._indexOfNextMatch ];
+            .futureMatchSet;
+        const teamMatch = futurMatchSet[ this._indexOfNextMatch ];
         const teamMatchFull = TeamMatchFullBuilder.create(teamMatch, this._matchDb);
         const popupContent = new PopUpNextMatchContent(teamMatchFull);
+        const indexOfMatch = this._indexOfNextMatch;
+        popupContent.setTitleSuffix(indexOfMatch + 1, futurMatchSet.length);
         $('#popup-next-match-title').text(popupContent.title);
         $('#popup-next-macth-team-name').text(popupContent.teamList);
         $('#popup-next-match-date-of-match').text(popupContent.startDate);
@@ -357,6 +361,10 @@ class PopUpNextMatchUI {
         $('#popup-next-match-close-button-label').text(popupContent.closeButtonLabel);
         $('#popup-next-match-next-button').text(popupContent.nextButtonLabel);
         $('#popup-next-match-previous-button').text(popupContent.previousButtonLabel);
+    }
+
+    _showFirstNextMatch() {
+        this._indexOfNextMatch = 0;
     }
 
     nextMatch() {
@@ -392,10 +400,17 @@ class PopUpNextMatchUI {
 class PopUpNextMatchContent {
     constructor(aTeamMatchFull) {
         this._teamMatchFull = aTeamMatchFull;
+        this._titleSuffix = '';
+    }
+
+    setTitleSuffix(anIndexOfMatch, aTotalMatch) {
+        this._titleSuffix = `${anIndexOfMatch}/${aTotalMatch}`;
     }
     
     get title() {
-        return 'Match à venir';
+        return this._titleSuffix === '' ? 
+            'Match à venir' :
+            `Match à venir - ${this._titleSuffix}`;
     }
 
     get closeButtonLabel() {
